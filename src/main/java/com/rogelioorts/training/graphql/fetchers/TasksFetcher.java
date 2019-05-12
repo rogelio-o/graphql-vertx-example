@@ -8,41 +8,29 @@ import io.vertx.core.Future;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 @RequiredArgsConstructor
 public class TasksFetcher {
 
     private final TasksRepository tasksRepository;
 
-    public CompletableFuture<List<ApiTask>> allTasks(final DataFetchingEnvironment env) {
+    public void allTasks(final DataFetchingEnvironment env, final Future<List<ApiTask>> future) {
         final boolean uncompletedOnly = env.getArgument("uncompletedOnly");
 
         if(uncompletedOnly) {
-            return transformFuture(tasksRepository.findAllUncompleted().map(TasksMapperGraphQL::mapToGraphQL));
+            tasksRepository.findAllUncompleted().map(TasksMapperGraphQL::mapToGraphQL)
+                    .compose(result -> future.complete(result), future);
         } else {
-            return transformFuture(tasksRepository.findAll().map(TasksMapperGraphQL::mapToGraphQL));
+            tasksRepository.findAll().map(TasksMapperGraphQL::mapToGraphQL)
+                    .compose(result -> future.complete(result), future);
         }
     }
 
-    public CompletableFuture<Boolean> complete(final DataFetchingEnvironment env) {
+    public void complete(final DataFetchingEnvironment env, final Future<Boolean> future) {
         final String id = env.getArgument("id");
 
-        return transformFuture(tasksRepository.markAsComplete(id).map(v -> true));
-    }
-
-    private <T> CompletableFuture<T> transformFuture(final Future<T> f) {
-        final CompletableFuture<T> completableFuture = new CompletableFuture<>();
-
-        f.setHandler(res -> {
-            if(res.succeeded()) {
-                completableFuture.complete(res.result());
-            } else {
-                completableFuture.completeExceptionally(res.cause());
-            }
-        });
-
-        return completableFuture;
+        tasksRepository.markAsComplete(id)
+                .compose(v -> future.complete(true), future);
     }
 
 }
