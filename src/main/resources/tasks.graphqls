@@ -11,3 +11,11 @@ type Query {
 type Mutation {
   complete(id: String!): Boolean
 }
+
+type Counter {
+  count: Int
+}
+
+type Subscription {
+  tick: Counter
+}
